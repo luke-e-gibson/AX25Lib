@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstdio>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -24,25 +25,47 @@ struct ConsoleConfig
     int fromSSID;
 };
 
-ConsoleConfig loadConfigFile(const std::string& filename)
+ConsoleConfig loadConfigFile(const std::vector<std::filesystem::path>& candidates)
 {
     ConsoleConfig cfg{"NOCALL", 0, "NOCALL", 0};
-    ini::IniFile configIn;
-    try {
-        configIn.load(filename.c_str());
-        cfg.toCallsign = configIn["TO_RADIO"]["callSign"].as<std::string>();
-        cfg.toSSID = configIn["TO_RADIO"]["SSID"].as<int>();
-        cfg.fromCallsign = configIn["FROM_RADIO"]["callSign"].as<std::string>();
-        cfg.fromSSID = configIn["FROM_RADIO"]["SSID"].as<int>();
-    } catch (...) {
-        std::cerr << "Warning: failed to load config.ini; using defaults" << std::endl;
+    for (const auto& path : candidates) {
+        try {
+            if (!std::filesystem::exists(path)) continue;
+            ini::IniFile configIn;
+            configIn.load(path.string().c_str());
+            cfg.toCallsign = configIn["TO_RADIO"]["callSign"].as<std::string>();
+            cfg.toSSID = configIn["TO_RADIO"]["SSID"].as<int>();
+            cfg.fromCallsign = configIn["FROM_RADIO"]["callSign"].as<std::string>();
+            cfg.fromSSID = configIn["FROM_RADIO"]["SSID"].as<int>();
+            return cfg; // Loaded successfully
+        } catch (...) {
+            continue; // Try next candidate
+        }
     }
+    std::cerr << "Warning: failed to load config.ini; using defaults" << std::endl;
     return cfg;
 }
 
-int main()
+int main(int argc, char** argv)
 {
-    auto cfg = loadConfigFile("config.ini");
+    std::filesystem::path execDir;
+    if (argc > 0) {
+        try {
+            execDir = std::filesystem::canonical(std::filesystem::path(argv[0])).parent_path();
+        } catch (...) {
+            execDir.clear();
+        }
+    }
+
+    std::vector<std::filesystem::path> candidates = {
+        std::filesystem::current_path() / "config.ini",
+        std::filesystem::current_path() / "AX25Console/config.ini"
+    };
+    if (!execDir.empty()) {
+        candidates.push_back(execDir / "config.ini");
+    }
+
+    auto cfg = loadConfigFile(candidates);
 
     AX25Config axCfg;
     axCfg.callsignTo = cfg.toCallsign;

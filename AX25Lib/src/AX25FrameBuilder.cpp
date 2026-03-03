@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cctype>
 #include <string>
+#include <cstdint>
 
 #include "AX25FrameBuilder.hpp"
 #include "AX25Util.hpp"

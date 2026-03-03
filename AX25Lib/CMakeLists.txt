@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 
 project(AX25Lib)
 
+# Build all targets in this directory with -fPIC so the static library can link into shared modules.
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 file(GLOB_RECURSE HEADERS "src/*.hpp")
 

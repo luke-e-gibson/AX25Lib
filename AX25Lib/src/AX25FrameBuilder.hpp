@@ -1,5 +1,6 @@
 #include "AX25Config.hpp"
 #include <vector>
+#include <cstdint>
 
 class AX25FrameBuilder
 {

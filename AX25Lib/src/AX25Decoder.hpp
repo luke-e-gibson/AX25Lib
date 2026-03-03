@@ -3,6 +3,7 @@
 #include <vector>
 #include <array>
 #include <optional>
+#include <cstdint>
 
 struct AX25DecodedPacket
 {
