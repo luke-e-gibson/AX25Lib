@@ -2,3 +2,6 @@
 	path = AX25Python/extern/pybind11
 	url = https://github.com/pybind/pybind11.git
 	branch = stable
+[submodule "AX25Console/extern/inifile-cpp"]
+	path = AX25Console/extern/inifile-cpp
+	url = https://github.com/Rookfighter/inifile-cpp.git

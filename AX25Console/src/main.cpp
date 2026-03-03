@@ -1,5 +1,9 @@
 #include <chrono>
-#include <stdio.h>
+#include <cstdio>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <inicpp.h>
 
 #include "AX25Config.hpp"
 #include "AX25FrameBuilder.hpp"
@@ -12,37 +16,67 @@ void printHex(const std::vector<uint8_t>& data) {
     printf("\n");
 }
 
-void encodeAndDecodeframe(std::vector<uint8_t>& data, AX25FrameBuilder& builder, AX25Decoder& decoder)
+struct ConsoleConfig
 {
-    auto ax25Frame = builder.buildAx25Frame(data);
-    printHex(ax25Frame);
-    
-    auto decoded = decoder.decodePacket(ax25Frame);
-    if (decoded) {
-        printf("Decoded Packet:\n");
-        printf("To: %s\n", decoded->callsignTo.c_str());
-        printf("From: %s\n", decoded->callsignFrom.c_str());
-        printf("Text: %s\n", decoded->textData.c_str());
-    } else {
-        printf("Failed to decode packet.\n");
+    std::string toCallsign;
+    int toSSID;
+    std::string fromCallsign;
+    int fromSSID;
+};
+
+ConsoleConfig loadConfigFile(const std::string& filename)
+{
+    ConsoleConfig cfg{"NOCALL", 0, "NOCALL", 0};
+    ini::IniFile configIn;
+    try {
+        configIn.load(filename.c_str());
+        cfg.toCallsign = configIn["TO_RADIO"]["callSign"].as<std::string>();
+        cfg.toSSID = configIn["TO_RADIO"]["SSID"].as<int>();
+        cfg.fromCallsign = configIn["FROM_RADIO"]["callSign"].as<std::string>();
+        cfg.fromSSID = configIn["FROM_RADIO"]["SSID"].as<int>();
+    } catch (...) {
+        std::cerr << "Warning: failed to load config.ini; using defaults" << std::endl;
     }
+    return cfg;
 }
 
 int main()
 {
-    AX25Config config;
-    config.callsignFrom = "VK3ABC";
-    config.ssidFrom = 0;
-    
-    config.callsignTo = "VK3XYZ";
-    config.ssidTo = 0;
-    
-    AX25FrameBuilder builder(config);
+    auto cfg = loadConfigFile("config.ini");
+
+    AX25Config axCfg;
+    axCfg.callsignTo = cfg.toCallsign;
+    axCfg.ssidTo = cfg.toSSID;
+    axCfg.callsignFrom = cfg.fromCallsign;
+    axCfg.ssidFrom = cfg.fromSSID;
+
+    AX25FrameBuilder builder(axCfg);
     AX25Decoder decoder;
-    
-    // Example payload (Hello World
-    std::vector<uint8_t> payload = {'H', 'e', 'l', 'l', 'o', ' ', 'W', 'o', 'r', 'l', 'd'};
-    encodeAndDecodeframe(payload, builder, decoder);
-    
+
+    std::cout << "AX.25 console (no KISS/Direwolf). Type messages and press Enter." << std::endl;
+    std::cout << "Loaded config: " << cfg.fromCallsign << "-" << cfg.fromSSID
+              << " -> " << cfg.toCallsign << "-" << cfg.toSSID << std::endl;
+
+    for (;;) {
+        std::cout << ">>> " << std::flush;
+        std::string line;
+        if (!std::getline(std::cin, line)) break;
+        if (line.empty()) continue;
+
+        std::vector<uint8_t> payload(line.begin(), line.end());
+        auto frame = builder.buildAx25Frame(payload);
+
+        std::cout << "AX.25 Frame: ";
+        printHex(frame);
+
+        auto decoded = decoder.decodePacket(frame);
+        if (decoded) {
+            std::cout << "[DECODED] " << decoded->callsignFrom << " -> "
+                      << decoded->callsignTo << " : " << decoded->textData << std::endl;
+        } else {
+            std::cout << "[DECODED] <invalid frame>" << std::endl;
+        }
+    }
+
     return 0;
 }
