@@ -29,15 +29,15 @@ PYBIND11_MODULE(AX25Python, m)
     py::class_<AX25Config>(m, "AX25Config")
         .def(py::init<>())
         .def(py::init([](const std::string& callsign_to, int ssid_to, const std::string& callsign_from, int ssid_from)
-             {
-                 AX25Config cfg;
-                 cfg.callsignTo = callsign_to.c_str();
-                 cfg.callsignFrom = callsign_from.c_str();
-                 cfg.ssidTo = ssid_to;
-                 cfg.ssidFrom = ssid_from;
-                 return cfg;
-             }), py::arg("callsign_to") = "", py::arg("callsign_from") = "", py::arg("ssid_to") = 0,
-             py::arg("ssid_from") = 0)
+        {
+            AX25Config cfg;
+            cfg.callsignTo = callsign_to;
+            cfg.callsignFrom = callsign_from;
+            cfg.ssidTo = ssid_to;
+            cfg.ssidFrom = ssid_from;
+            return cfg;
+        }), py::arg("callsign_to") = "", py::arg("callsign_from") = "", py::arg("ssid_to") = 0,
+            py::arg("ssid_from") = 0)
         .def_readwrite("callsign_to", &AX25Config::callsignTo)
         .def_readwrite("callsign_from", &AX25Config::callsignFrom)
         .def_readwrite("ssid_to", &AX25Config::ssidTo)

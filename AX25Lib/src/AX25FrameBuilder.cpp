@@ -45,7 +45,7 @@ std::vector<uint8_t> AX25FrameBuilder::buildAx25Frame(const std::vector<uint8_t>
     return out;
 }
 
-std::vector<uint8_t> AX25FrameBuilder::m_buildAX25Call(const char* callsign, int ssid, bool last)
+std::vector<uint8_t> AX25FrameBuilder::m_buildAX25Call(const std::string& callsign, int ssid, bool last)
 {
     std::string callsignStr(callsign);
     std::transform(callsignStr.begin(), callsignStr.end(), callsignStr.begin(),

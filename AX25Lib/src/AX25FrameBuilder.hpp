@@ -16,5 +16,5 @@ private:
     std::vector<uint8_t> m_callFrameTo; // To send to
     std::vector<uint8_t> m_callFrameFrom; // From us
     
-    static std::vector<uint8_t> m_buildAX25Call(const char* callsign, int ssid, bool last);
+    static std::vector<uint8_t> m_buildAX25Call(const std::string& callsign, int ssid, bool last);
 };
