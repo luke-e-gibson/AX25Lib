@@ -12,7 +12,7 @@ socket_t connect_kiss(const std::string host, int port)
     
     if (inet_pton(AF_INET, host.c_str(), &addr.sin_addr) <= 0)
     {
-        closesocket(sockfd);
+        socket_close(sockfd);
         throw std::runtime_error("Invalid address: " + host);
     }
     
