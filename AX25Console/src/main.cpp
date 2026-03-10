@@ -1,5 +1,4 @@
 #include <chrono>
-#include <iomanip>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -10,67 +9,7 @@
 #include "AX25Config.hpp"
 #include "AX25FrameBuilder.hpp"
 #include "AX25Decoder.hpp"
-
-void printHex(const std::vector<uint8_t>& data)
-{
-    for (uint8_t byte : data)
-    {
-        std::cout << std::uppercase << std::hex << std::setw(2) << std::setfill('0')
-            << static_cast<int>(byte) << ' ';
-    }
-    std::cout << std::dec << std::endl;
-}
-
-struct KissConfig
-{
-    std::string host;
-    int port;
-};
-
-struct ConsoleConfig
-{
-    std::string toCallsign;
-    int toSSID;
-    std::string fromCallsign;
-    int fromSSID;
-};
-
-struct Config
-{
-    KissConfig kiss;
-    ConsoleConfig ax25;
-};
-
-
-Config loadConfigFile(const std::vector<std::filesystem::path>& candidates)
-{
-    ConsoleConfig consoleCfg{"NOCALL", 0, "NOCALL", 0};
-    KissConfig kissConfig{"127.0.0.1", 8001};
-    Config cfg = { kissConfig, consoleCfg };
-    for (const auto& path : candidates)
-    {
-        try
-        {
-            if (!std::filesystem::exists(path)) continue;
-            ini::IniFile configIn;
-            configIn.load(path.string().c_str());
-            consoleCfg.toCallsign = configIn["TO_RADIO"]["callSign"].as<std::string>();
-            consoleCfg.toSSID = configIn["TO_RADIO"]["SSID"].as<int>();
-            consoleCfg.fromCallsign = configIn["FROM_RADIO"]["callSign"].as<std::string>();
-            consoleCfg.fromSSID = configIn["FROM_RADIO"]["SSID"].as<int>();
-            kissConfig.host = configIn["KISS"]["kiss_host"].as<std::string>();
-            kissConfig.port = configIn["KISS"]["kiss_port"].as<int>();
-            cfg.kiss = kissConfig;
-            cfg.ax25 = consoleCfg;
-        }
-        catch (...)
-        {
-            continue; // Try next candidate
-        }
-    }
-    std::cerr << "Warning: failed to load config.ini; using defaults" << std::endl;
-    return cfg;
-}
+#include "Utill.h"
 
 int main(int argc, char** argv)
 {
@@ -100,7 +39,7 @@ int main(int argc, char** argv)
         candidates.push_back(execDir / "config.ini");
     }
 
-    auto cfg = loadConfigFile(candidates);
+    auto cfg = Utill::loadConfigFile(candidates);
     
     socket_init();
     socket_t kissSocket = connect_kiss(cfg.kiss.host, cfg.kiss.port);
@@ -120,7 +59,6 @@ int main(int argc, char** argv)
         << "; Kiss Host: " << cfg.kiss.host << ":" << cfg.kiss.port << std::endl;
     
     
-    
     for (;;)
     {
         std::cout << ">>> " << std::flush;
@@ -137,7 +75,7 @@ int main(int argc, char** argv)
         size_t sent = send(kissSocket, reinterpret_cast<const char*>(frame.data()), frame.size(), 0);
         
         std::cout << "AX.25 KISS Frame: ";
-        printHex(frame);
+        Utill::printHex(frame);
 
         auto decoded = decoder.decodePacket(frame);
         if (decoded)

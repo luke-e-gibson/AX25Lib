@@ -27,3 +27,19 @@ A basic C++ AX25 implementation with python bindings.
 	- [ ] KISS escaping edge cases
 	- [ ] Multi-address routing and digipeater repetition bit cases
 	- [ ] Negative cases: bad FCS, truncated headers, invalid escapes
+
+## Python package
+
+Install the Python bindings directly from GitHub with pip:
+
+```bash
+pip install "AX25Python @ git+https://github.com/jezza5400-org/AX25Lib.git"
+```
+
+This builds the extension from source, so the machine running pip needs a working C++17 toolchain and a Python environment that can compile native extensions.
+
+After install, import the module as:
+
+```python
+import AX25Python
+```

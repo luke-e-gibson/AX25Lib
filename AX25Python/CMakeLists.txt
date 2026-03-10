@@ -26,11 +26,15 @@ set(CMAKE_CXX_STANDARD 17)
      
 pybind11_add_module(AX25Python ${SOURCES} ${HEADERS})
 target_link_libraries(AX25Python PRIVATE AX25Lib)
-install(TARGETS AX25Python DESTINATION lib)
+install(TARGETS AX25Python
+	LIBRARY DESTINATION .
+	RUNTIME DESTINATION .
+	ARCHIVE DESTINATION .
+)
 
 set(AX25PYTHON_PYI ${CMAKE_CURRENT_LIST_DIR}/AX25Python.pyi)
 if(EXISTS ${AX25PYTHON_PYI})
-	install(FILES ${AX25PYTHON_PYI} DESTINATION lib)
+	install(FILES ${AX25PYTHON_PYI} DESTINATION .)
 
 	# Copy the stub next to the built .pyd/.so for in-tree development and LSPs.
 	add_custom_command(TARGET AX25Python POST_BUILD

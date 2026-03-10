@@ -1,0 +1,29 @@
+[build-system]
+requires = [
+    "scikit-build-core>=0.10",
+    "pybind11>=2.13.6",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "AX25Python"
+version = "0.1.0"
+description = "Python bindings for the AX25Lib C++ AX.25 helpers"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.urls]
+Homepage = "https://github.com/jezza5400-org/AX25Lib"
+Repository = "https://github.com/jezza5400-org/AX25Lib"
+
+[tool.scikit-build]
+cmake.source-dir = "."
+cmake.build-type = "Release"
+wheel.packages = []
+sdist.exclude = [
+    "build/**",
+]
+
+[tool.scikit-build.cmake.define]
+AX25LIB_BUILD_CONSOLE = "OFF"
+AX25LIB_BUILD_PYTHON = "ON"
