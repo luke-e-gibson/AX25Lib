@@ -1,13 +1,33 @@
 #include <algorithm>
 #include <cctype>
-#include <string>
 #include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 #include "AX25FrameBuilder.hpp"
 #include "AX25Util.hpp"
 
-AX25FrameBuilder::AX25FrameBuilder(const AX25Config& config) : m_config(config)
+AX25FrameBuilder::AX25FrameBuilder(const AX25Config& config)
+    : AX25FrameBuilder(config, std::vector<uint8_t>{0x03}, std::vector<uint8_t>{0xF0})
 {
+}
+
+AX25FrameBuilder::AX25FrameBuilder(const AX25Config& config, const std::vector<uint8_t>& control, const std::vector<uint8_t>& pid)
+    : m_config(config),
+      m_control(control.empty() ? std::vector<uint8_t>{0x03} : control),
+      m_pid(pid.empty() ? std::vector<uint8_t>{0xF0} : pid)
+{
+    if (m_control.size() != 1)
+    {
+        throw std::invalid_argument("AX25 control field must be exactly one byte");
+    }
+
+    if (m_pid.size() != 1)
+    {
+        throw std::invalid_argument("AX25 PID field must be exactly one byte");
+    }
+
     // Destination is not marked as last; source terminates the address list.
     m_callFrameTo = m_buildAX25Call(config.callsignTo, config.ssidTo, false);
     m_callFrameFrom = m_buildAX25Call(config.callsignFrom, config.ssidFrom, true);
@@ -31,16 +51,13 @@ std::vector<uint8_t> AX25FrameBuilder::buildKissFrame(const std::vector<uint8_t>
 
 std::vector<uint8_t> AX25FrameBuilder::buildAx25Frame(const std::vector<uint8_t>& payload)
 {
-    constexpr uint8_t CONTROL = 0x03; // UI frame
-    constexpr uint8_t PID = 0xF0; // No layer 3 protocol
-
     std::vector<uint8_t> out;
-    out.reserve(m_callFrameTo.size() + m_callFrameFrom.size() + 2 + payload.size());
+    out.reserve(m_callFrameTo.size() + m_callFrameFrom.size() + m_control.size() + m_pid.size() + payload.size());
 
     out.insert(out.end(), m_callFrameTo.begin(), m_callFrameTo.end());
     out.insert(out.end(), m_callFrameFrom.begin(), m_callFrameFrom.end());
-    out.push_back(CONTROL);
-    out.push_back(PID);
+    out.insert(out.end(), m_control.begin(), m_control.end());
+    out.insert(out.end(), m_pid.begin(), m_pid.end());
     out.insert(out.end(), payload.begin(), payload.end());
 
     return out;

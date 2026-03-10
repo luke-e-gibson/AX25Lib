@@ -12,6 +12,7 @@ if(NOT pybind11_FOUND)
 		DOWNLOAD_EXTRACT_TIMESTAMP ON
 	)
 	FetchContent_MakeAvailable(pybind11)
+	ax25lib_assign_folder_recursive("${pybind11_BINARY_DIR}" "vendor")
 endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")

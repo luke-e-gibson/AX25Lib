@@ -39,9 +39,28 @@ int main(int argc, char** argv)
     
     direwolf->listen(); // Starts listening for packets (blocking call)
 
-    direwolf->sendPacket(PacketTypes::e_MessagePacket, MessagePacket{"Alice", "Hello, Direwolf!"});
+    // Get user from console
+    const std::string userName = []() {
+        std::string name;
+        std::cout << "Enter your name: ";
+        std::getline(std::cin, name);
+        return name;
+    }();
+    
     while (true)
     {
+        const std::string message = []() {
+            std::string msg;
+            std::cout << "Enter a message to send: ";
+            std::getline(std::cin, msg);
+            return msg;
+        }();
+        
+        MessagePacket packet;
+        packet.name = userName.c_str();
+        packet.message = message.c_str();
+        
+        direwolf->sendPacket(PacketTypes::e_MessagePacket, packet, true);
     }
     
 }

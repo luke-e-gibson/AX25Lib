@@ -9,11 +9,16 @@ FetchContent_Declare(
 	GIT_TAG main
 )
 FetchContent_MakeAvailable(inifile-cpp)
+ax25lib_assign_folder_recursive("${inifile-cpp_BINARY_DIR}" "vendor")
 
 # Create an interface target for inifile-cpp (header-only)
 if(NOT TARGET inifile-cpp)
 	add_library(inifile-cpp INTERFACE)
 	target_include_directories(inifile-cpp INTERFACE ${inifile-cpp_SOURCE_DIR}/include)
+endif()
+
+if(TARGET inifile-cpp)
+	set_property(TARGET inifile-cpp PROPERTY FOLDER "vendor")
 endif()
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")

@@ -12,19 +12,46 @@ std::vector<uint8_t> AX25Util::kissEscape(const std::vector<uint8_t>& data)
     return out;
 }
 
-std::vector<unsigned char> AX25Util::kissUnescape(const std::vector<unsigned char>& in) {
-    std::vector<unsigned char> out;
+std::vector<uint8_t> AX25Util::kissUnescape(const std::vector<uint8_t>& in)
+{
+    std::vector<uint8_t> out;
     out.reserve(in.size());
-    for (std::size_t i = 0; i < in.size(); ++i) {
-        unsigned char b = in[i];
-        if (b == 0xDB && i + 1 < in.size()) {
-            unsigned char n = in[++i];
-            if (n == 0xDC) out.push_back(0xC0);
-            else if (n == 0xDD) out.push_back(0xDB);
-            else out.push_back(n);
-        } else {
-            out.push_back(b);
+
+    std::size_t index = 0;
+    while (index < in.size())
+    {
+        const uint8_t byte = in[index];
+        if (byte != 0xDB)
+        {
+            out.push_back(byte);
+            ++index;
+            continue;
+        }
+
+        if (index + 1 >= in.size())
+        {
+            out.push_back(0xDB);
+            ++index;
+            continue;
+        }
+
+        const uint8_t nextByte = in[index + 1];
+        if (nextByte == 0xDC)
+        {
+            out.push_back(0xC0);
+            index += 2;
+        }
+        else if (nextByte == 0xDD)
+        {
+            out.push_back(0xDB);
+            index += 2;
+        }
+        else
+        {
+            out.push_back(0xDB);
+            ++index;
         }
     }
+
     return out;
 }

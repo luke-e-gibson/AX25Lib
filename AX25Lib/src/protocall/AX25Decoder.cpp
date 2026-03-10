@@ -1,32 +1,90 @@
 ﻿#include "AX25Decoder.hpp"
+
+#include <algorithm>
+#include <iterator>
 #include <stdexcept>
+#include <vector>
+
+#include <zlib.h>
 
 #include "AX25Util.hpp"
 
 AX25Decoder::AX25Decoder() {}
+
+std::vector<uint8_t> AX25Decoder::m_extractFirstFrame(const std::vector<uint8_t>& ax25Frame)
+{
+    const auto firstFend = std::find(ax25Frame.begin(), ax25Frame.end(), static_cast<uint8_t>(0xC0));
+    if (firstFend == ax25Frame.end())
+    {
+        return ax25Frame;
+    }
+
+    auto chunkStart = ax25Frame.begin();
+    while (chunkStart != ax25Frame.end())
+    {
+        chunkStart = std::find_if(chunkStart, ax25Frame.end(), [](uint8_t byte) { return byte != 0xC0; });
+        if (chunkStart == ax25Frame.end())
+        {
+            return {};
+        }
+
+        const auto chunkEnd = std::find(chunkStart, ax25Frame.end(), static_cast<uint8_t>(0xC0));
+        if (chunkStart != chunkEnd)
+        {
+            return std::vector<uint8_t>(chunkStart, chunkEnd);
+        }
+
+        chunkStart = chunkEnd;
+    }
+
+    return {};
+}
+
+std::vector<uint8_t> AX25Decoder::m_maybeDecompressPayload(const std::vector<uint8_t>& payload)
+{
+    if (payload.empty())
+    {
+        return payload;
+    }
+
+    z_stream stream{};
+    stream.next_in = const_cast<Bytef*>(reinterpret_cast<const Bytef*>(payload.data()));
+    stream.avail_in = static_cast<uInt>(payload.size());
+    if (inflateInit(&stream) != Z_OK)
+    {
+        return payload;
+    }
+
+    std::vector<uint8_t> output;
+    std::array<uint8_t, 4096> buffer{};
+    int status = Z_OK;
+    do
+    {
+        stream.next_out = buffer.data();
+        stream.avail_out = static_cast<uInt>(buffer.size());
+        status = inflate(&stream, Z_NO_FLUSH);
+
+        if (status != Z_OK && status != Z_STREAM_END)
+        {
+            inflateEnd(&stream);
+            return payload;
+        }
+
+        const auto written = buffer.size() - stream.avail_out;
+        output.insert(output.end(), buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(written));
+    }
+    while (status != Z_STREAM_END);
+
+    inflateEnd(&stream);
+    return output;
+}
 
 std::optional<AX25DecodedPacket> AX25Decoder::decodePacket(const std::vector<uint8_t>& ax25Frame)
 {
     try {
         if (ax25Frame.empty()) return std::nullopt;
 
-        // If FEND (0xC0) present, pick first non-empty chunk between FEND bytes
-        std::vector<unsigned char> frame;
-        bool has_fend = false;
-        for (unsigned char b : ax25Frame) if (b == 0xC0) { has_fend = true; break; }
-        if (has_fend) {
-            std::size_t i = 0;
-            while (i < ax25Frame.size()) {
-                // skip leading FENDs
-                while (i < ax25Frame.size() && ax25Frame[i] == 0xC0) ++i;
-                std::size_t start = i;
-                while (i < ax25Frame.size() && ax25Frame[i] != 0xC0) ++i;
-                if (i > start) { frame.assign(ax25Frame.begin() + start, ax25Frame.begin() + i); break; }
-            }
-            if (frame.empty()) frame.clear();
-        } else {
-            frame = ax25Frame;
-        }
+        std::vector<uint8_t> frame = m_extractFirstFrame(ax25Frame);
 
         // Remove optional KISS command byte (0x00)
         if (!frame.empty() && frame[0] == 0x00) frame.erase(frame.begin());
@@ -49,12 +107,14 @@ std::optional<AX25DecodedPacket> AX25Decoder::decodePacket(const std::vector<uin
         auto src_raw  = af.addresses[1];
 
         if (frame.size() < af.consumed + 2) return std::nullopt;
-        std::vector<unsigned char> payload(frame.begin() + af.consumed + 2, frame.end());
+        std::vector<uint8_t> payload(frame.begin() + af.consumed + 2, frame.end());
+        auto decodedPayload = m_maybeDecompressPayload(payload);
 
         AX25DecodedPacket res;
         res.callsignTo = m_decodeCall(dest_raw);
         res.callsignFrom  = m_decodeCall(src_raw);
-        res.textData = std::string(payload.begin(), payload.end()); // preserve bytes; UTF-8 invalid sequences kept as-is
+        res.payloadData = std::move(decodedPayload);
+        res.textData = std::string(res.payloadData.begin(), res.payloadData.end());
         return res;
     } catch (...) {
         return std::nullopt;
@@ -70,10 +130,8 @@ std::string AX25Decoder::m_decodeCall(const std::array<uint8_t, 7>& addr)
         if (c != ' ') call.push_back(c);
     }
     unsigned char ssid = (addr[6] >> 1) & 0x0F;
-    if (ssid) {
-        call.push_back('-');
-        call += std::to_string(ssid);
-    }
+    call.push_back('-');
+    call += std::to_string(ssid);
     return call;
 }
 

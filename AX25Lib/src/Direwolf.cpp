@@ -7,6 +7,8 @@
 #include <sstream>
 #include <thread>
 
+#include <zlib.h>
+
 #include "protocall/AX25Config.hpp"
 #include "protocall/AX25Decoder.hpp"
 #include "protocall/AX25FrameBuilder.hpp"
@@ -50,6 +52,35 @@ void sendAll(socket_t socketHandle, const std::vector<std::uint8_t>& buffer)
 
         totalSent += static_cast<std::size_t>(sent);
     }
+}
+
+std::vector<std::uint8_t> compressPayloadIfRequested(const std::vector<std::uint8_t>& payload, bool compress)
+{
+    if (!compress || payload.empty())
+    {
+        return payload;
+    }
+
+    uLongf compressedSize = compressBound(static_cast<uLong>(payload.size()));
+    std::vector<std::uint8_t> compressed(compressedSize);
+    const auto status = compress2(
+        compressed.data(),
+        &compressedSize,
+        reinterpret_cast<const Bytef*>(payload.data()),
+        static_cast<uLong>(payload.size()),
+        Z_BEST_COMPRESSION);
+    if (status != Z_OK)
+    {
+        return payload;
+    }
+
+    compressed.resize(static_cast<std::size_t>(compressedSize));
+    if (compressed.size() >= payload.size())
+    {
+        return payload;
+    }
+
+    return compressed;
 }
 }
 
@@ -133,11 +164,11 @@ void Direwolf::registerPacketHandler(int packetType, PacketHandler callback)
     m_impl->packetHandlers[packetType].push_back(std::move(callback));
 }
 
-void Direwolf::sendSerializedPacket(const std::vector<std::uint8_t>& payload)
+void Direwolf::sendSerializedPacket(const std::vector<std::uint8_t>& payload, bool compress)
 {
     ensureConnected();
 
-    auto ax25Frame = m_impl->frameBuilder.buildAx25Frame(payload);
+    auto ax25Frame = m_impl->frameBuilder.buildAx25Frame(compressPayloadIfRequested(payload, compress));
     auto kissFrame = m_impl->frameBuilder.buildKissFrame(ax25Frame);
 
     socket_t socketHandle = INVALID_SOCK;

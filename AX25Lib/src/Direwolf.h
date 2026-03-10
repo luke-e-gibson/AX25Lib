@@ -599,9 +599,9 @@ public:
     }
 
     template<typename T>
-    void sendPacket(int packetType, const T& packet)
+    void sendPacket(int packetType, const T& packet, bool compress = false)
     {
-        sendSerializedPacket(direwolf_detail::serializePacketPayload(packetType, packet));
+        sendSerializedPacket(direwolf_detail::serializePacketPayload(packetType, packet), compress);
     }
     
     void listen();
@@ -612,7 +612,7 @@ private:
 
     void ensureConnected();
     void registerPacketHandler(int packetType, PacketHandler callback);
-    void sendSerializedPacket(const std::vector<std::uint8_t>& payload);
+    void sendSerializedPacket(const std::vector<std::uint8_t>& payload, bool compress);
     void receiverLoop();
     void dispatchPayload(const std::vector<std::uint8_t>& payload);
     static std::vector<std::vector<std::uint8_t>> extractFrames(std::vector<std::uint8_t>& buffer);
