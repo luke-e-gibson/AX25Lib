@@ -29,11 +29,16 @@ A basic C++ AX25 implementation with python bindings.
 	- [ ] Negative cases: bad FCS, truncated headers, invalid escapes
 
 ## Building CPP Code
+### Build The Project With Out Python
 ```bash 
 $ mkdir build && cd build
-$ cmake .. -DAX25LIB_BUILD_PYTHON=OFF
+$ cmake .. -DAX25LIB_BUILD_PYTHON=OFF # Turn on to compile python libary
 $ cmake --build . -j
 ```
+
+### Build LSP supprt
+Required previouse step to compleate. Then run in build folder
+```cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON```
 
 ## Python package
 
