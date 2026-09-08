@@ -28,6 +28,13 @@ A basic C++ AX25 implementation with python bindings.
 	- [ ] Multi-address routing and digipeater repetition bit cases
 	- [ ] Negative cases: bad FCS, truncated headers, invalid escapes
 
+## Building CPP Code
+```bash 
+$ mkdir build && cd build
+$ cmake .. -DAX25LIB_BUILD_PYTHON=OFF
+$ cmake --build . -j
+```
+
 ## Python package
 
 Install the Python bindings directly from GitHub with pip:
