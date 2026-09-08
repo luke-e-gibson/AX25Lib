@@ -16,8 +16,7 @@ using socket_t = int;
 #endif
 
 #include <string>
-
-#include "fatal_error.hpp"
+#include <spdlog/spdlog.h>
 
 inline void socket_init() {
 #ifdef _WIN32

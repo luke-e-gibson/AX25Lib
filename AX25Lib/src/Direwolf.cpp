@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstdlib>
 #include <mutex>
+#include <spdlog/spdlog.h>
 #include <sstream>
 #include <thread>
 
@@ -44,10 +46,7 @@ void sendAll(socket_t socketHandle, const std::vector<std::uint8_t>& buffer)
         const auto sent = send(socketHandle, reinterpret_cast<const char*>(buffer.data() + totalSent), remaining, 0);
         if (sent <= 0)
         {
-            std::ostringstream message;
-            message << "TCP send failed while writing " << buffer.size()
-                << " byte(s) to the Direwolf KISS socket after " << totalSent << " byte(s) were sent.";
-            direwolf_fatal::fail("Failed to send packet to Direwolf", message);
+            spdlog::warn("Failed to send packet to Direwolf");
         }
 
         totalSent += static_cast<std::size_t>(sent);
@@ -179,11 +178,12 @@ void Direwolf::sendSerializedPacket(const std::vector<std::uint8_t>& payload, bo
 
     if (socketHandle == INVALID_SOCK)
     {
-        direwolf_fatal::fail(
+        spdlog::critical(
             "Direwolf socket is not connected",
             "The library tried to send a packet before a TCP connection to Direwolf was available. "
             "Verify the Direwolf host/port and call listen() after Direwolf is running."
         );
+        std::exit(EXIT_FAILURE);
     }
 
     sendAll(socketHandle, kissFrame);
@@ -229,11 +229,8 @@ void Direwolf::receiverLoop()
         const int received = recv(socketHandle, reinterpret_cast<char*>(chunk.data()), static_cast<int>(chunk.size()), 0);
         if (received <= 0)
         {
-            std::ostringstream message;
-            message << "The TCP connection to Direwolf at " << config.connectionInfo.host
-                << ':' << config.connectionInfo.port
-                << " was closed or returned an error while waiting for incoming KISS frames.";
-            direwolf_fatal::fail("Lost connection to Direwolf", message);
+            spdlog::critical("Lost connection to Direwolf at {}:{}", config.connectionInfo.host, config.connectionInfo.port);
+            std:exit(EXIT_FAILURE);
         }
 
         receiveBuffer.insert(receiveBuffer.end(), chunk.begin(), chunk.begin() + received);

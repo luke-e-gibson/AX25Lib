@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <deque>
 #include <functional>
@@ -14,7 +15,7 @@
 #include <utility>
 #include <vector>
 
-#include "utill/fatal_error.hpp"
+#include <spdlog/spdlog.h>
 
 struct DirewolfConnectionInfo
 {
@@ -136,11 +137,8 @@ public:
     {
         if (m_offset + size > m_buffer.size())
         {
-            std::ostringstream message;
-            message << "Failed to deserialize packet payload: needed " << size
-                << " more byte(s) at offset " << m_offset
-                << ", but the payload only contains " << m_buffer.size() << " byte(s).";
-            direwolf_fatal::fail("Packet payload is truncated", message);
+            spdlog::critical("Failed to deserialize packet payload");
+            std::exit(EXIT_FAILURE);
         }
 
         std::memcpy(destination, m_buffer.data() + m_offset, size);
@@ -162,11 +160,8 @@ public:
         const auto length = static_cast<std::size_t>(readUInt32());
         if (m_offset + length > m_buffer.size())
         {
-            std::ostringstream message;
-            message << "Failed to deserialize a string field: expected " << length
-                << " byte(s) starting at offset " << m_offset
-                << ", but the payload only contains " << m_buffer.size() << " byte(s).";
-            direwolf_fatal::fail("Packet string field is truncated", message);
+            spdlog::critical("Failed to deserialize a string field");
+            std::exit(EXIT_FAILURE);
         }
 
         std::string value(reinterpret_cast<const char*>(m_buffer.data() + m_offset), length);
@@ -557,11 +552,8 @@ DecodedPacket<T> deserializePacketPayload(const std::vector<std::uint8_t>& paylo
     deserialize(payloadReader, decoded.packet, decoded.state);
     if (!payloadReader.isFullyConsumed())
     {
-        std::ostringstream message;
-        message << "Packet type " << packetType << " decoded successfully, but "
-            << "there are unexpected trailing bytes in the payload. "
-            << "This usually means the sender and receiver packet layouts do not match.";
-        direwolf_fatal::fail("Packet payload contains trailing bytes", message);
+        spdlog::critical("Packet payload contains trailing bytes");
+        std::exit(EXIT_FAILURE);
     }
     return decoded;
 }
@@ -587,7 +579,7 @@ public:
     Direwolf& operator=(const Direwolf&) = delete;
     Direwolf(Direwolf&&) = delete;
     Direwolf& operator=(Direwolf&&) = delete;
-    
+
     template<typename T>
     void onPacketReceived(int packetType, std::function<void(T packet)> callback)
     {
@@ -603,9 +595,9 @@ public:
     {
         sendSerializedPacket(direwolf_detail::serializePacketPayload(packetType, packet), compress);
     }
-    
+
     void listen();
-    
+
 private:
     struct Impl;
     using PacketHandler = std::function<void(const std::vector<std::uint8_t>& payload)>;

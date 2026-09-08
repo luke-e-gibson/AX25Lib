@@ -1,7 +1,6 @@
 ﻿#include "AX25Decoder.hpp"
 
 #include <algorithm>
-#include <iterator>
 #include <stdexcept>
 #include <vector>
 
@@ -151,5 +150,3 @@ AX25Decoder::AddressParseResult AX25Decoder::m_parseAddress(const std::vector<ui
     }
     return result;
 }
-
-
