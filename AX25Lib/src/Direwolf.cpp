@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <mutex>
 #include <spdlog/spdlog.h>
-#include <sstream>
 #include <thread>
 
 #include <zlib.h>
